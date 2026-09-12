@@ -76,11 +76,18 @@ def get_heart_rate(start_iso: str, end_iso: str, bucket_minutes: int = 5) -> str
     a = int(dt.datetime.fromisoformat(start_iso).replace(tzinfo=tz).timestamp() * 1000)
     b = int(dt.datetime.fromisoformat(end_iso).replace(tzinfo=tz).timestamp() * 1000)
     if bucket_minutes <= 0:
-        return _rows("SELECT ts, bpm FROM hr WHERE ts BETWEEN ? AND ? ORDER BY ts", (a, b))
+        rows = json.loads(_rows("SELECT ts, bpm FROM hr WHERE ts BETWEEN ? AND ? ORDER BY ts", (a, b)))
+        for r in rows:
+            r["local_time"] = dt.datetime.fromtimestamp(r["ts"] / 1000, tz).strftime("%Y-%m-%d %H:%M:%S")
+        return json.dumps(rows)
     step = int(bucket_minutes) * 60000
-    return _rows("SELECT (ts / ?) * ? AS bucket_ms, ROUND(AVG(bpm),1) AS bpm, MIN(bpm) AS lo, MAX(bpm) AS hi, "
-                 "COUNT(*) AS n FROM hr WHERE ts BETWEEN ? AND ? GROUP BY bucket_ms ORDER BY bucket_ms",
-                 (step, step, a, b))
+    rows = json.loads(_rows(
+        "SELECT (ts / ?) * ? AS bucket_ms, ROUND(AVG(bpm),1) AS bpm, MIN(bpm) AS lo, MAX(bpm) AS hi, "
+        "COUNT(*) AS n FROM hr WHERE ts BETWEEN ? AND ? GROUP BY bucket_ms ORDER BY bucket_ms",
+        (step, step, a, b)))
+    for r in rows:
+        r["local_time"] = dt.datetime.fromtimestamp(r["bucket_ms"] / 1000, tz).strftime("%Y-%m-%d %H:%M")
+    return json.dumps(rows)
 
 
 @mcp.tool()
