@@ -279,11 +279,24 @@ def compute(con: sqlite3.Connection, cfg: Config) -> tuple[pd.DataFrame, pd.Data
             if pd.isna(s):
                 return np.nan
             h, m = map(int, s.split(":"))
-            v = h * 60 + m
-            return v + 1440 if v < 720 else v  # bedtimes after midnight count as next-day minutes
+            return h * 60 + m
+
+        def _circ_sd(win: pd.Series) -> float:
+            # Clock times wrap at midnight, so use the circular standard deviation. A 23:30 and a
+            # 00:30 bedtime are one hour apart, and so are 11:50 and 12:50 wake times.
+            v = win.dropna().to_numpy(float)
+            if len(v) < 3:
+                return np.nan
+            theta = v / 1440.0 * 2.0 * np.pi
+            r = float(np.hypot(np.cos(theta).mean(), np.sin(theta).mean()))
+            if r <= 0:
+                return 720.0
+            return float(np.sqrt(-2.0 * np.log(min(r, 1.0))) * 1440.0 / (2.0 * np.pi))
+
         bed = daily["sleep_start"].map(_mins)
         wake = daily["sleep_end"].map(_mins)
-        sd = (bed.rolling(7, min_periods=3).std() + wake.rolling(7, min_periods=3).std()) / 2.0
+        sd = (bed.rolling(7, min_periods=3).apply(_circ_sd, raw=False)
+              + wake.rolling(7, min_periods=3).apply(_circ_sd, raw=False)) / 2.0
         daily["sleep_consistency"] = (100.0 - sd / 60.0 * 25.0).clip(0, 100).round(0)
 
     # --- recovery ---

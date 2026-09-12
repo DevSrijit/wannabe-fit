@@ -105,6 +105,14 @@ This installs a launchd agent named `com.wannabe-fit.sync` that runs `vitals syn
 transfers the zip when it changed. On Linux, a cron line running `uv run --project <path> vitals sync`
 does the same job.
 
+## Web dashboard
+
+`web/` is a Next.js site over the same database: recovery ring, hypnogram, zone and load charts, per-workout heart-rate traces, and a glossary that explains every metric with its formula and source. See [web/README.md](web/README.md).
+
+```bash
+cd web && bun install && bun run dev
+```
+
 ## Interfaces
 
 ### Command line
@@ -187,7 +195,7 @@ The constants live in `vitals/metrics.py`.
 - **Sleep**: `sleep_asleep_min` is the sum of light, deep, REM, and generic sleeping stages; time in bed
   is the session length. `sleep_need_min = base + 60 * (yesterday's strain / 21) + min(60, 0.5 * 7-day debt)`.
   `sleep_performance` is asleep over need, capped at 100. `sleep_consistency` loses 25 points for each
-  hour of standard deviation in bed and wake times over 7 days.
+  hour of circular standard deviation in bed and wake times over 7 days (the clock wraps at midnight).
 - **Recovery** (0-100): `0.50 * RHR component + 0.35 * sleep performance + 0.15 * SpO2 component`.
   The RHR component is `70 - 20 * z`, where z is today's RHR against the 30-day baseline. The SpO2
   component maps the overnight minimum from 88% (0) to 95% (100). If HRV is present the weights become
