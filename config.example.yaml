@@ -1,0 +1,40 @@
+# Copy this file to config.yaml and edit it. Every value has a safe default.
+
+profile:
+  sex: male          # male | female  (used by the TRIMP and HR-kcal formulas)
+  birth_year: 1990
+  height_cm: 175
+  weight_kg: 75      # fallback only; the newest weight record in the data wins
+  hr_max: null       # null = 208 - 0.7 * age (Tanaka). Set a measured value when you have one.
+  sleep_need_base_h: 8.0
+
+timezone: UTC        # IANA name, for example Asia/Kolkata or Europe/Berlin
+
+paths:
+  # Where Health Connect zips or Takeout zips are dropped. `vitals sync` ingests the newest file here.
+  inbox: data/inbox
+  db: data/vitals.db
+  reports: data/reports
+
+# Optional: pull the newest export from a cloud folder with rclone before ingesting.
+# Run `rclone config` once to create the remote. Leave null to skip.
+rclone:
+  remote_path: null        # e.g. "gdrive:Vitals"
+
+# Sources whose exercise sessions are ignored in workout metrics. Empty = keep everything.
+ignore_workout_sources: []
+# Sources that auto-detect activity (Google Fit). A session from one of these is dropped only when it
+# overlaps a session from another source by more than half of its own duration (same walk, two writers).
+autodetect_workout_sources: ["Fit", "Google Play services"]
+
+# Heart-rate zones as fractions of heart-rate reserve (Karvonen).
+zones:
+  z1: [0.50, 0.60]
+  z2: [0.60, 0.70]
+  z3: [0.70, 0.80]
+  z4: [0.80, 0.90]
+  z5: [0.90, 1.01]
+
+# Longest gap (seconds) that one background HR sample is allowed to "cover".
+# 24/7 samples on the CMF watch arrive every 1-10 min; workout samples every 1-5 s.
+hr_sample_cap_s: 600
